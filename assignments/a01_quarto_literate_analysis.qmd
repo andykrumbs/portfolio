@@ -24,6 +24,8 @@ The seawater chemistry dataset used here is `BGchem2008data.csv` (downloaded pre
 
 You will explore the nitrogen to phosphate ratio, which indicates the health of the ocean ecosystem. <https://beal-agulhas.earth.miami.edu/teaching/courses/lecture-five/index.html>
 
+## My About Section
+
 The redfield ratio is a statistic that describes the comparative levels of the three vital nutrients carbon, nitrogen, and phosphorus in oceanic environments. These three elements are found in roughly a ratio of 106:16:1 (C:N:P), and a measured ratio near this value indicates a healthy ocean ecosystem that has a functioning flow of nutrients through the environment.
 
 Furthermore, the ratio can be simplified to just N:P, with a desired ratio of 16:1. The further from this ratio the more unhealthy the ecosystem is, which can be caused by different factors such as pollution, climate change, or simply changing of ocean currents. In any case, change in the Redfield ratio means that more research in the area is required, since this can have significant effects on the local species as well as the global ecosystem.
@@ -96,6 +98,8 @@ plot(
   main = "Ocean water samples: total N vs P"
 )
 ```
+
+## My Graph Analysis
 
 This graph shows a roughly linear trend, where more phosphorus is linearly correlated with nitrogen. This shows that phosphorus concentrations are highly dependent on nitrogen concentrations. Interestingly, most of these points along this trend do not have a healthy Redfield ratio, with nearly all of the observations having a ratio far below 16:1. This indicates that the area these observations were collected in have a nutrient poor environment, and further analysis needs to be performed to find out why this is the case.
 
