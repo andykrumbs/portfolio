@@ -1,0 +1,95 @@
+---
+title: "a04"
+editor: visual
+author: "Andreas Krumbein"
+date: "March 12, 2026"
+---
+
+## Introduction
+
+This assignment joins the four tables and then filters the subsequent dataframe by four specific sites and finds the totals for each site
+
+## Data
+
+The data was from the Arizona State University researchers studying interactions between birds in urban parks. The data was collected across various parks in the central Arizona-Pheonix metropolitan area. The data is separated into four tables containing the bird observations, the site information, the survey information, and the taxa information for each bird respectively. It was dowloaded from the EDI portal under the title "Ecological and social interactions in urban parks: bird surveys in local parks in the central Arizona-Phoenix metropolitan area."
+
+## Assignment a04: Use a new package lubridate to wrangle the date data and find the total number of birds by park and month
+
+load packages and read in the data
+
+```{r}
+library(readr)
+library(dplyr)
+library(lubridate)
+
+birds <- read.csv("https://pasta.lternet.edu/package/data/eml/knb-lter-cap/256/10/53edaa7a0e083013d9bf20322db1780e")
+surveys <- read.csv("https://pasta.lternet.edu/package/data/eml/knb-lter-cap/256/10/b2466fa5cb5ed7ee1ea91398fc291c59")
+sites <- read.csv("https://pasta.lternet.edu/package/data/eml/knb-lter-cap/256/10/81bf72420e69077097fb0790dcdc63a6")
+taxalist <- read.csv("https://pasta.lternet.edu/package/data/eml/knb-lter-cap/256/10/58f863b7e3066e68536a9cacdc7bd58e")
+```
+
+rename notes in birds so that it doesn't conflict with notes in surveys table
+
+```{r}
+birds <- birds %>% 
+  rename(bird_obs_notes = notes)
+```
+
+Merge tables using full join and select for the important columns
+
+```{r}
+bird_obs_subset <- birds %>% 
+  full_join(y = taxalist, by = "species_id") %>% 
+  full_join(y = sites, by = "site_id") %>% 
+  full_join(y = surveys, by = c("site_id", "survey_id")) %>%  
+  select(survey_date, common_name, park_name, bird_count, observer)
+```
+
+Change observer data values to a consistent format
+
+```{r}
+bird_obs_subset <- bird_obs_subset %>% 
+  mutate(observer = if_else(condition = observer == "Josh Burns", 
+                            true = "J. Burns", 
+                            false = observer))
+
+unique(bird_obs_subset$observer)
+```
+
+1.  Use lubridate::month() to add a new column to bird_obs_subset called survey_month, containing only the month number. Then, convert the month number to a factor (again within mutate()).
+
+```{r}
+bird_obs_subset <- bird_obs_subset %>%
+  mutate(survey_month = month(survey_date) %>% 
+           factor())
+```
+
+2.  Use dplyr::relocate() to move the new survey_month column to immediately after the survey_date column. You can do this in a separate code chunk, or pipe straight into it from your existing code.
+
+```{r}
+bird_obs_subset <- bird_obs_subset %>% 
+  relocate(survey_month, .after = survey_date)
+```
+
+3.  Filter to only include parks Lindo, Orme, Palomino, and Sonrisa.
+
+```{r}
+bird_obs_subfilter <- bird_obs_subset %>% 
+  filter(park_name %in% c("Lindo", "Orme", "Palomino", "Sonrisa"))
+```
+
+4.  Find the total number of birds observed by park and month (Hint: You can use group_by() and summarize()).
+
+```{r}
+birds_summary <- bird_obs_subfilter %>% 
+  group_by(park_name) %>% 
+  summarize(total_birds = sum(bird_count, na.rm = TRUE))
+```
+
+```{r}
+birds_summary
+```
+
+## Summary
+
+The final outcome outputs the total number of birds observed in each park location. The data has limited information from just this summary, and more information about specific bird species would be useful. As it stands, further data would be useful to answer a more specific question. I think that this data wrangling process would be improved by having a more specific question in mind to guide the process, as this would also tell me whether this output is actually useful or not. However, this is the output I expected as we are simply finding the totals from these four parks.
