@@ -6,7 +6,11 @@ listing:
   fields: [title, date]
 ---
 
-Welcome!  
-This is my portfolio for learning **R, data analysis, GitHub, and Quarto**.
+Welcome!
 
-## Assignments
+## Course Lessons
+
+- Introduction to Literate Analysis Using Quarto 
+- Tidy Data
+- Cleaning and Wrangling data
+- Data Visualization
