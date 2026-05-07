@@ -1,0 +1,68 @@
+---
+title: "a03"
+editor: visual
+athor: Andreas Krumbein
+---
+
+## a03 Week 6 assignment
+
+### load packages
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(readr)
+```
+
+### load the datafile using the read_csv function from the readr package
+
+```{r}
+catch_original <- read_csv("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.302.1")
+```
+
+### clean the data and save the cleaned data to the "mean_region" object
+
+```{r}
+#mean_region gets catch_original then
+mean_region <- catch_original %>%
+  
+  #use the select function to remove the columns "All" and "notesRegCode"
+  select(-All, -notesRegCode) %>%
+  
+  #use the mutate function to mutate values in the column Chinook using an if_else condition
+  #to convert instances where the letter I is found to the number 1, and leave the existing
+  #value if the value is not the letter I
+  mutate(Chinook = if_else(Chinook == "I", "1", Chinook)) %>% 
+  
+  #use the mutate function to convert all of the values in the column Chinook to numeric values
+  mutate(Chinook = as.numeric(Chinook)) %>%
+  
+  #use the pivot_longer function to convert the dataframe to long format so that all of the
+  #columns except region and year, and add the column names to the values of the column 'species'
+  #and add the values in these columns to the column 'catch'
+  pivot_longer(-c(Region, Year),
+               names_to = "species",
+               values_to = "catch") %>% 
+  
+  #use the mutate function to convert the values in the column 'catch' to individual fish
+  #instead of thousands of fish
+  mutate(catch = catch*1000) %>%
+  
+  #use the group_by function to group by region
+  group_by(Region) %>%
+  
+  #use the summarize function to find the mean catch number by region since we already grouped
+  #by region
+  summarize(mean_catch = mean(catch)) %>%
+  
+  #use the arrange function to arrange by descending order of mean catch
+  arrange(desc(mean_catch))
+```
+
+### use the head function to take a peak into the new dataframe we creates
+
+```{r}
+head(mean_region)
+```
+
+### Now we've filtered and tidied up our data!
