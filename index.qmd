@@ -10,6 +10,7 @@ Welcome!
 
 ## Course Lessons
 
+- [a00: Setup and Hello World](assignments/a00.html)
 - Introduction to Literate Analysis Using Quarto 
 - Tidy Data
 - Cleaning and Wrangling data
