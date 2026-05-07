@@ -1,0 +1,64 @@
+---
+title: "a02 Assignment Document"
+subtitle: "coreR Assignment 2, a02"
+author: "Andreas Krumbein"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+execute:
+  warning: false
+  message: false
+---
+
+# Introduction
+
+This quarto document follows the process assignment a02. We will identify whether the data is tidy, and cleaning the data if it is not tidy.
+
+## About my section
+
+The data is zebrafish behavioral data in a habituation test. A habituation test is one in which zebrafish are exposed to a bright light for two seconds, then the light is turned off for two seconds. When the light turns on, the fish are startled and start swimming, showing increased velocity. Then the light turns off and the fish slow down a little. As the light turns on and off repeatedly, the fish become used to the light stimulus or "habituated" and their velocity is not as high when the light turns on. The point at which the fish no longer respond to the light turning on and off is the habituation point. In addition, after running the test five times, the time to reach habituation is much faster in the fifth trial than in the first trial, as the fish remembers that the flashing light is not a threat.
+
+However, when various parts of the brain such as those controlling, fear, learning, and memory are altered, the time to reach the habituation point is far longer, and the time to habituation doesn't change as much in between the first trial and the fifth trial. By measuring the change in average velocity in two second intervals, we can graph the time it takes to reach the habituation point, and observe behavioral changes that occur due to exposure to different toxins.
+
+## About the data
+
+Valproic acid (VPA) is an established model of inducing behavioral changes similar to autism-spectrum disorder in mice models, and has further been used in zebrafish as well. These datasets describe behavioral data for fish that have been exposed to the drug treatment VPA, and those that have not been exposed to VPA.
+
+The data is spread across two tables, one of which describes observations for fish exposed to the drug treatment and the other exposed to no drug treatment.
+
+During the habituation test, 22 fish are placed in 22 arenas, and the average velocity is measured across two second intervals, across five trials. As a result, the average velocity and distance moved for each two second window, for each arena, for each trial is measured in the data. Each observation is identified by the trial, arena, and time bin that the observation belongs to.
+
+## Setup
+
+Best practice: put all `library()` calls in one chunk near the top so collaborators can see what packages are required.
+
+```{r}
+library(here)
+library(readr)
+```
+
+# Read in the data
+
+```{r}
+vpa <- read_csv(here::here("assignments/vpa_data", "VPA1uM_7dpf_24_well.csv"))
+novpa <- read_csv(here::here("assignments/vpa_data", "VPA0uM_7dpf_24_well.csv"))
+```
+
+### VPA Table
+
+```{r}
+head(vpa, n=3)
+```
+
+### No VPA Table
+
+```{r}
+head(novpa, n=3)
+```
+
+## Is the data tidy?
+
+Yes the data is tidy, as each column is a variable, each row is an individual observation, and each cell is a single value. Despite the data being tidy, that doesn't mean that it shouldn't be reorganized to make analysis easier.
+
+The main change I would make to the data is that I would separate each trial into their own individual dataframes so that the statistics from each trial can be individually measured and graphed more easily.

@@ -1,0 +1,218 @@
+---
+title: "a08"
+editor: visual
+author: "Andreas Krumbein"
+---
+
+## Data
+
+The data used refers to the boundaries of Alaska's Salmon and People (SASAP) regions to reflect watershed regions and high resolution visualization of the coastline. Population data across Alaska was obtained from a study identifying population and languages spoken across communities in Alaska. River location data was obtained from a study that adapted data from the United States Geological Survey Hydrographic geodatabase and merged this file with a file referring to the regional boundaries of Alaska to visualize rivers across the state of Alaska. Data was sourced from the Knowledge Network for Biocomplexity. Regional data: https://doi.org/10.5063/F1125QWP. Population data: https://doi.org/10.5063/F11G0JHX. River data: https://doi.org/10.5063/F1PZ573F.
+
+### 2: Setup
+
+load packages and data
+
+```{r}
+
+library(R.utils)
+library(readr)
+library(here)
+library(sf)
+library(ggplot2)
+library(leaflet)
+library(scales)
+library(ggspatial)
+library(dplyr)
+library(prettymapr)
+
+knb_url <- "https://dev.nceas.ucsb.edu/knb/d1/mn/v2/object/urn%3Auuid%3Aaceaecb2-1ce0-4d41-a839-d3607d32bb58"
+
+#use libcurl dowloader to prevent corruption issues
+download.file(knb_url,
+              destfile = "shapefile_demo_data.zip",
+              mode = "wb",
+              method = "libcurl")
+
+#unzip using the internal decompression instead of an external tool
+unzip("shapefile_demo_data.zip", exdir = "data", unzip = "internal")
+
+file.remove('shapefile_demo_data.zip')
+```
+
+### 3.0: Exploring the data
+
+load data and set new CRS
+
+```{r}
+#read in shape file
+ak_rgns_sf <- read_sf(here("data/ak_regions_simp.shp"))
+
+#CRS set to Alaska Albers projection: 3338
+ak_rgns_3338_sf <- ak_rgns_sf %>%
+    st_transform(crs = 3338)
+
+# read in population data
+pop_df <- read_csv(here("data/alaska_population.csv"))
+```
+
+### 4.0: sf and the Tidyverse
+
+Select for regions and filter by regions
+
+```{r}
+#select for region to add a region column to the spatial object
+ak_rgns_3338_sf %>%
+  select(region)
+
+ak_rgns_3338_sf %>%
+  filter(region == "Southeast")
+```
+
+### 5.0: Spatial Joins
+
+Turn population data into a spatial object and join with geographic data
+
+```{r}
+#turn population data into a spatial object
+pop_4326_sf <- st_as_sf(pop_df,
+                        coords = c('lng', 'lat'),
+                        crs = 4326,
+                        remove = F)
+
+#set the crs number of the population data object to 3338
+pop_3338_sf <- st_transform(pop_4326_sf, 
+                            crs = 3338)
+
+#join population data with Alaska regions
+pop_joined_sf <- st_join(pop_3338_sf,
+                         ak_rgns_3338_sf,
+                         join = st_within)
+
+#find the total population by region
+pop_rgn_df <- pop_joined_sf %>% 
+  st_drop_geometry() %>% 
+  group_by(region) %>% 
+  summarize(total_pop = sum(population))
+
+pop_rgn_3338_sf <- left_join(ak_rgns_3338_sf,
+                             pop_rgn_df,
+                             by ='region')
+
+#save the spatial object with population data
+write_sf(pop_rgn_3338_sf, here("data/ak_regions_population.shp"))
+
+#plot pop_rgn_3338 to ensure that the joins worked
+plot(pop_rgn_3338_sf["total_pop"])
+```
+
+### 6.0: Visualizing with ggplot
+
+plotting with geom
+
+```{r}
+ggplot(pop_rgn_3338_sf) +
+    geom_sf(aes(fill = total_pop)) +
+    labs(fill = "Total Population") +
+    scale_fill_continuous(low = "khaki",
+                          high =  "firebrick",
+                          labels = comma) +
+    theme_bw()
+```
+
+Plot river locations
+
+```{r}
+#load in river data file
+rivers_3338_sf <- read_sf(here("data/ak_rivers_simp.shp"))
+
+ggplot() +
+    geom_sf(data = pop_rgn_3338_sf, 
+            aes(fill = total_pop)) +
+    geom_sf(data = pop_3338_sf, 
+            size = 0.5) +
+    geom_sf(data = rivers_3338_sf,
+            aes(linewidth = StrOrder)) +
+    scale_linewidth(range = c(0.05, 0.5),
+                    guide = "none") +
+    labs(title = "Total Population by Alaska Region",
+         fill = "Total Population") +
+    scale_fill_continuous(low = "khaki",
+                          high =  "firebrick",
+                          labels = comma) +
+    theme_bw()
+```
+
+Use ggspatial to incorporate base maps
+
+```{r}
+#set crs to 3587, the OpenStreetMap projection
+pop_3857_sf <- st_transform(pop_3338_sf, 
+                         crs = 3857)
+
+#plot using ggspatial to add the openstreetmap tile layer
+ggplot(data = pop_3857_sf) +
+  ggspatial::annotation_map_tile(type = "osm", zoom = 4, progress = 'none') + 
+  # higher zoom values are more detailed 
+  geom_sf(aes(color = population),
+          fill = NA) +
+  scale_color_continuous(low = "darkkhaki",
+                          high =  "firebrick",
+                          labels = comma)
+```
+
+```{r}
+
+```
+
+### 7.0: Visualize with leaflet
+
+```{r}
+#create leaflet projection
+epsg3338 <- leaflet::leafletCRS(
+    crsClass = "L.Proj.CRS",
+    code = "EPSG:3338",
+    proj4def =  "+proj=aea +lat_1=55 +lat_2=65 +lat_0=50 +lon_0=-154 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs",
+    resolutions = 2 ^ (16:7)
+)
+
+#transform sf object crs back to 4326
+pop_rgn_4326_sf <- pop_rgn_3338_sf %>% 
+    st_transform(crs = 4326)
+
+#create leaflet object with
+pal <- colorNumeric(palette = "Reds", domain = pop_rgn_4326_sf$total_pop)
+
+m <- leaflet(options = leafletOptions(crs = epsg3338)) %>%
+    addPolygons(
+        data = pop_rgn_4326_sf,
+        fillColor = ~ pal(total_pop),
+        weight = 1,
+        color = "black",
+        fillOpacity = 1
+    ) %>%
+    addCircleMarkers(
+        data = pop_4326_sf,
+        lat = ~ lat,
+        lng = ~ lng,
+        radius = ~ log(population / 500),
+        # arbitrary scaling
+        fillColor = "gray",
+        fillOpacity = 1,
+        weight = 0.25,
+        color = "black",
+        label = ~ paste0(pop_4326_sf$city, ", population ", comma(pop_4326_sf$population))
+    ) %>%
+    addLegend(
+        position = "bottomleft",
+        pal = pal,
+        values = range(pop_rgn_4326_sf$total_pop),
+        title = "Total Population"
+    )
+
+#show object
+m
+```
+
+### Conclusions
+
+Through visualization of Alaskan geographical regions and population density, it is plainly obvious that the vast majority of the state's population density is localized to the regions surrounding Anchorage, with some regions of higher population density in the areas surrounding Juneau and Fairbanks. The high population density of Anchorage makes sense given the sheltered waterfront provided by the inlet it sits on. However, the majority of Alaska has low population density beyond these few regions.
