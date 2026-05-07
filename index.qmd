@@ -14,5 +14,5 @@ Welcome!
 - [a01: Introduction to Literate Analysis Using Quarto](assignment/a01_quarto_literate_analysis.html)
 - [a02: Tidy Data](assignments/a02.html)
 - [a03: Cleaning and Wrangling data](assignments/a03.html)
-- [a04: Data Visualization(No link found)]()
-- [a05]
+- [a04: Data Visualization](assignments/a04.html)
+- [a05: ]
