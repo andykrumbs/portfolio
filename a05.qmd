@@ -1,0 +1,125 @@
+---
+title: "a05"
+editor: visual
+author: "Andreas Krumbein"
+---
+
+## Introduction
+
+This assignment takes ecological data and visualizes it with a violin plot and a leaflet map
+
+## Data
+
+This data documents human activity in and around the Ecorestore project sites in the Sacramento-San Jouquin area. Human activity was described by the type of visitor at each location, specified by the mode of transportation (small, medium, or large boat, or car) or by the profession of the visitor (scientist or bank angler). In addition to the type of visitor, location data was recorded, including the point of entry and exit (reach) of each visitor, the Ecorestore project site that was visited, and the geographic coordinates of the data collected. The date at which each visit occured also was recorded. This data was recorded from July 2017 to March 2018.
+
+I aim to characterize human traffic through this area in order to understand what types of people most commonly visit this area and why. To do this I will specifically look at the different modes of transportation used by visitors and compare the daily visits to all locations for each mode.
+
+## Assignment 04: Data Visualization
+
+load packages and read in the data
+
+```{r}
+library(readr)
+library(dplyr)
+library(tidyr)
+library(forcats) # makes working with factors easier
+library(ggplot2)
+library(leaflet) # interactive maps
+library(DT) # interactive tables
+library(scales) # scale functions for visualization
+library(janitor) # expedite cleaning and exploring data
+library(viridis) # colorblind friendly color palette
+```
+
+read in the dataset
+
+```{r}
+delta_visits_raw <- read.csv("https://pasta.lternet.edu/package/data/eml/edi/587/1/cda8c1384af0089b506d51ad8507641f")
+```
+
+```{r}
+delta_visits <- delta_visits_raw %>%
+    #transform all column names into snake case
+    janitor::clean_names()
+
+visits_long <- delta_visits %>% 
+    #pivot the dataframe into long format
+    #pivots the columns sm_boat, med_boat, lrg_boat, bank_angler, scientist, cars, converts the names         to the column "visitor type", and converts the values to the column "quantity"
+    pivot_longer(cols = c(sm_boat, med_boat, lrg_boat, bank_angler, scientist, cars),
+                 names_to = "visitor_type",
+                 values_to = "quantity") %>%
+    #rename the column "eco_restore_approximate_location" to the column "restore_loc"
+    rename(restore_loc = eco_restore_approximate_location) %>% 
+    #remove notes column
+    select(-notes)
+
+daily_visits_loc <- visits_long %>%
+    #use the group by and summarize functions to find the number of daily visits for each visitor type at     each location
+    group_by(restore_loc, date, visitor_type) %>% 
+    summarise(daily_visits = sum(quantity))
+
+## Take a peak at the new table  
+head(daily_visits_loc)
+```
+
+```{r}
+#create a custom theme to use for the ggplot
+my_theme <- theme_bw(base_size = 16) +
+    theme(legend.position = "none",
+          axis.ticks.y = element_blank())
+```
+
+```{r}
+daily_visits_loc %>%
+    #filter for daily visits less than 30, and filter the visitor type to only the vehicle type
+    filter(daily_visits < 30,
+           visitor_type %in% c("sm_boat", "med_boat", "lrg_boat", "cars")) %>%
+    #set the x and y variables, and determine which variable controls the internal color of the violins
+    ggplot(aes(x = visitor_type, y = daily_visits, fill = visitor_type)) +
+    #create a violin plot
+    geom_violin() +
+  #use the brewer color palette
+  scale_fill_brewer(palette = "Set2")+
+  #change the titles
+  labs( x = "Visitor Type",
+        y = "Daily Visits",
+        title = "Daily Visitors by Motor Vehicle Type",
+        subtitle = "Visits across all Ecorestore Locations from July 2017 to March 2018") +
+  #improve readability with theme_bw then apply my theme from before
+  theme_bw() +
+  my_theme
+```
+
+```{r}
+#create a dataframe for the coordinates of each location
+locations <- visits_long %>%
+    #filter for unique observations in the restore_loc column
+    distinct(restore_loc, .keep_all = TRUE) %>%
+    #select for the columns restore_loc, latitude, and longitude
+    select(restore_loc, latitude, longitude)
+
+#create a map
+leaflet(locations) %>%
+    #reskin the map using the world topographical map
+    addProviderTiles(providers$Esri.WorldTopoMap) %>%
+    #add circle markers using the latitude and longitude columns as the lng and lat values
+    addCircleMarkers(
+        lng = ~ longitude,
+        lat = ~ latitude,
+        popup = ~ restore_loc,
+        radius = 5,
+        # set fill properties
+        fillColor = "salmon",
+        fillOpacity = 1,
+        # set stroke properties
+        stroke = TRUE,
+        weight = 0.5,
+        color = "white",
+        opacity = 1)
+```
+
+## Discussion
+
+By looking at the locations of the restoration projects, all of them are adjacent to or near water, so we would expect a large amount of water traffic coming through these locations. Indeed, the violin plot shows that small, medium, and large boats all frequent the restoration project locations. In addition, many cars also frequent these locations, which makes sense as several of the locations are accessible by land.
+
+However, medium sized boats have the highest daily visits, and large boats have more days with a handful lower daily visits, indicating that the size of boats at these locations skews larger. While these waterways are likely used for shipping, it is surprising that the daily visits of large boats and medium boats outstrips cars, especially since cars have become the primary method of local shipping.
