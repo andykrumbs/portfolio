@@ -15,4 +15,4 @@ Welcome!
 - [a02: Tidy Data](assignments/a02.html)
 - [a03: Cleaning and Wrangling data](assignments/a03.html)
 - [a04: Data Visualization](assignments/a04.html)
-- [a05: ]
+- [a05: Plotting with ggplot2 and leaflet](assignments/a05.html)
