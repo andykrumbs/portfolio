@@ -1,12 +1,17 @@
 ---
 title: "Portfolio"
-listing:
-  contents: assignments
-  sort: "date asc"
-  fields: [title, date]
+subtitle: "a09"
+author: "Andreas Krumbein"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+execute:
+  warning: false
+  message: false
 ---
 
-Welcome!
+Here are some of the course assignments covered this semester in BIOL806: Applied Data Science
 
 ## Course Lessons
 
